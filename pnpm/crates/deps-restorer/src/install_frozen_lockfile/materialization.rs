@@ -81,12 +81,6 @@ impl<'a> InstallFrozenLockfile<'a> {
     ) -> Result<crate::linking::LinkPhaseOutput, InstallFrozenLockfileError> {
         let install = self.inputs();
         let (trusted_importer_ids, root_component_importers) = install.importer_sets();
-        let sidecar_lockfile = crate::filter_lockfile_for_current(
-            install.lockfiles.wanted,
-            install.included(),
-            skipped,
-        );
-
         crate::linking::run_link_phase::<Reporter>(
             crate::linking::LinkPhaseInputs {
                 graph: crate::LinkLockfiles {
@@ -95,7 +89,7 @@ impl<'a> InstallFrozenLockfile<'a> {
                     materialized_snapshots: install.prior.rebuild
                         .is_none()
                         .then_some(phase.fetched.materialized_snapshots.as_slice()),
-                    sidecar_lockfile: &sidecar_lockfile,
+                    sidecar_lockfile: phase.current_lockfile,
                 },
                 packages: crate::LinkPackageData {
                     package_manifests: &phase.fetched.package_manifests,
@@ -154,7 +148,7 @@ impl<'a> InstallFrozenLockfile<'a> {
                     custom_fetcher_session.as_ref(),
                 ),
                 ConcurrentVerification {
-                    lockfile: install.lockfiles.wanted,
+                    lockfile: install.lockfiles.verified,
                     verifiers: install.lockfiles.resolution_verifiers,
                     precomputed: phase.verification_override,
                     lockfile_path: install.lockfiles.path,

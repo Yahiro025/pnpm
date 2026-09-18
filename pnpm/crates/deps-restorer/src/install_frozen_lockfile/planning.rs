@@ -3,7 +3,7 @@ use crate::{
     AllowBuildPolicy, CreateVirtualStore, CreateVirtualStoreOutput, SkippedSnapshots,
     VirtualStoreLayout, any_installability_constraint,
 };
-use pnpm_lockfile::{LockfileEntries, PackageKey, PackageMetadata, SnapshotEntry};
+use pnpm_lockfile::{Lockfile, LockfileEntries, PackageKey, PackageMetadata, SnapshotEntry};
 use pnpm_modules_yaml::{Host, IncludedDependencies, read_modules_manifest};
 use pnpm_package_manifest::DependencyGroup;
 use pnpm_store_dir::StoreIndexWriter;
@@ -180,7 +180,7 @@ impl<'a> FrozenInputs<'a> {
         // resolution-verification fan-out where the offline name check
         // would otherwise run. The slot-containment half needs the
         // install-time `layout`, so it can't live in the verifier crate.
-        pnpm_lockfile_verification::verify_lockfile_dependency_names(install.lockfiles.wanted)
+        pnpm_lockfile_verification::verify_lockfile_dependency_names(install.lockfiles.verified)
             .map_err(InstallFrozenLockfileError::LockfileVerification)?;
         crate::validate_virtual_store_slot_containment(snapshots, &layout)
             .map_err(InstallFrozenLockfileError::LockfileVerification)?;
@@ -229,6 +229,9 @@ pub(super) struct LinkInputs<'p> {
     /// Taken out of `fetched`: the hoisted linker consumes it.
     pub(super) cas_paths_by_pkg_id: Option<crate::CasPathsByPkgId>,
     pub(super) host_node: Option<&'p crate::materialization_plan::HostNode>,
+    /// The wanted lockfile narrowed to what this install keeps, shared
+    /// by the module-resolution sidecars and the `injectedDeps` record.
+    pub(super) current_lockfile: &'p Lockfile,
 }
 /// What [`InstallFrozenLockfile::fetch`](crate::InstallFrozenLockfile::fetch) needs beyond the install's own
 /// inputs: the plan's store-side half and the state the phases before
